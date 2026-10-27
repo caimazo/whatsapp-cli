@@ -24,6 +24,12 @@ const AUTH_DIR = path.join(DATA_DIR, 'auth')
 const STORE_FILE = path.join(DATA_DIR, 'store.json')
 const MAX_MSGS_PER_CHAT = 200
 
+// libsignal dumps "Closing session: SessionEntry {...}" and similar via console.*;
+// the app itself writes to stdout directly, so mute console unless logs are wanted.
+if (!process.env.WA_LOG_LEVEL) {
+  for (const k of ['log', 'info', 'warn', 'error', 'debug']) console[k] = () => {}
+}
+
 const c = {
   dim: (s) => `\x1b[2m${s}\x1b[0m`,
   bold: (s) => `\x1b[1m${s}\x1b[0m`,
