@@ -260,7 +260,7 @@ async function handleLine(line) {
     if (!activeChat) return out(c.yellow('No chat open. Use /chats then /open <n>, or /new <phone>.'))
     if (!sock?.user) return out(c.red('Not connected yet.'))
     await sock.sendMessage(activeChat, { text: input })
-    // our own message comes back through messages.upsert and is printed there
+    // our own message comes back through messages.upsert (as 'append') and is printed there
     return
   }
   const [cmd, ...rest] = input.slice(1).split(' ')
@@ -392,12 +392,14 @@ async function connect() {
   sock.ev.on('messages.upsert', ({ messages, type }) => {
     for (const msg of messages) {
       const rec = recordMessage(msg, { live: type === 'notify' })
-      if (!rec || type !== 'notify') continue
+      if (!rec) continue
       const { chatJid, entry } = rec
+      // Baileys echoes our own sends (and offline backlog) as 'append', so print
+      // anything new in the open chat, but only notify about live messages elsewhere.
       if (chatJid === activeChat) {
         out(fmtMessage(chatJid, entry))
         if (!entry.fromMe) sock.readMessages([msg.key]).catch(() => {})
-      } else if (!entry.fromMe) {
+      } else if (type === 'notify' && !entry.fromMe) {
         const where = isJidGroup(chatJid) ? `${displayName(entry.sender)} @ ${displayName(chatJid)}` : displayName(chatJid)
         out(`${c.yellow('●')} ${c.bold(where)}: ${entry.text}`)
       }
